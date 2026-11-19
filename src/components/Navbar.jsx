@@ -1,425 +1,186 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import slide1 from '../assets/c4.png';
-import slide2 from '../assets/ev_charger.jpg';
-import slide3 from '../assets/public.png';
-import slide4 from '../assets/c3.png';
-import about1 from '../assets/c2.png';
-import about2 from '../assets/imagee2.jpg';
-import logos from '../assets/up.png';
-import { FaUserCircle, FaSignOutAlt } from "react-icons/fa";
-import { jwtDecode } from "jwt-decode";
+import { FaBars, FaTimes, FaMoon, FaSun, FaCode, FaFilePdf, FaGithub, FaLinkedin } from 'react-icons/fa';
 
-function Navbar() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [popupType, setPopupType] = useState(null);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [contactHovered, setContactHovered] = useState(false);
-  const [contactClicked, setContactClicked] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [mobilePopupType, setMobilePopupType] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userData, setUserData] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  
-  const BASE_URL_AND_PORT = "https://api.static.ev.transev.site";
-  const API_KEY = "mlzuMoRFjdGhcFulLMaVtfwNAHycbBAf";
-  const solutionCaptions = ['Home and Housing Societies', 'Office and Workplace', 'Public Places', 'Fleet Organization'];
-  const aboutCaptions = ['Who we are', 'How we work'];
+const Navbar = ({ toggleTheme, theme, onOpenResume }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 100);
-    window.addEventListener('scroll', handleScroll);
-
-    const initializeUser = () => {
-      const storedToken = localStorage.getItem('auth_token');
-      const storedRole = localStorage.getItem('user_role');
-      
-      console.log("🔍 Navbar Initialize - Stored Role:", storedRole);
-      console.log("🔍 Stored Token exists:", !!storedToken);
-      
-      if (storedToken && storedRole) {
-        setIsLoggedIn(true);
-        setUserRole(storedRole);
-        
-        // Fetch profile based on role
-        if (storedRole === 'admin') {
-          console.log("✅ Admin role detected - fetching admin profile");
-          fetchAdminProfile(storedToken);
-        } else if (storedRole === 'user') {
-          console.log("✅ User role detected - fetching user profile");
-          fetchUserProfile(storedToken);
-        } else {
-          console.log("⚠️ Unknown role, defaulting to user");
-          setUserRole('user');
-          fetchUserProfile(storedToken);
-        }
-      } else if (storedToken && !storedRole) {
-        // Try to detect role from token
-        console.log("⚠️ No stored role, detecting from token...");
-        try {
-          const decoded = jwtDecode(storedToken);
-          const role = (decoded.role === 'admin' || decoded.user_type === 'admin') ? 'admin' : 'user';
-          localStorage.setItem('user_role', role);
-          setUserRole(role);
-          setIsLoggedIn(true);
-          
-          if (role === 'admin') {
-            fetchAdminProfile(storedToken);
-          } else {
-            fetchUserProfile(storedToken);
-          }
-        } catch (error) {
-          console.error("Token decode error:", error);
-          setIsLoggedIn(false);
-        }
-      } else {
-        console.log("❌ No token found");
-        setIsLoggedIn(false);
-        setUserData(null);
-        setUserRole(null);
-      }
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 30);
     };
-
-    initializeUser();
-
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const fetchAdminProfile = async (token) => {
-    try {
-      console.log("🟢 FETCHING ADMIN PROFILE API");
-      const response = await fetch(`${BASE_URL_AND_PORT}/admin/profile`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "API-KEY": API_KEY,
-        },
-      });
+  const navLinks = [
+    { name: 'Home', href: '#home' },
+    { name: 'About', href: '#about' },
+    { name: 'Skills', href: '#skills' },
+    { name: 'Projects', href: '#projects' },
+    { name: 'Experience', href: '#experience' },
+    { name: 'Services', href: '#services' },
+    { name: 'Contact', href: '#contact' },
+  ];
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("✅ Admin Profile Data:", data);
-        
-        setUserData({
-          name: data.name,
-          email: data.email,
-          role: 'admin',
-          profile_picture: null,
-        });
-      } else {
-        console.error("❌ Admin profile fetch failed");
-        setIsLoggedIn(false);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_role');
-      }
-    } catch (error) {
-      console.error("❌ Admin profile error:", error);
-    }
+  const handleLinkClick = () => {
+    setIsOpen(false);
   };
 
-  const fetchUserProfile = async (token) => {
-    try {
-      console.log("🟢 FETCHING USER PROFILE API");
-      const response = await fetch(`${BASE_URL_AND_PORT}/users/profile`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "API-KEY": API_KEY,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("✅ User Profile Data:", data);
-        
-        const profilePic = data.user_data?.profile_picture;
-        let profilePicUrl = null;
-        
-        if (profilePic && isBase64(profilePic)) {
-          profilePicUrl = convertBase64ToBlob(profilePic);
-        }
-        
-        setUserData({
-          name: data.user_data?.name || data.user_data?.full_name,
-          email: data.user_data?.email,
-          role: 'user',
-          profile_picture: profilePicUrl,
-        });
-      } else {
-        console.error("❌ User profile fetch failed");
-        setIsLoggedIn(false);
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_role');
-      }
-    } catch (error) {
-      console.error("❌ User profile error:", error);
-    }
-  };
-
-  const isBase64 = (str) => {
-    if (!str) return false;
-    const base64Regex = /^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/;
-    return base64Regex.test(str);
-  };
-
-  const convertBase64ToBlob = (base64String) => {
-    const byteCharacters = atob(base64String);
-    const byteArrays = [];
-    for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-      const slice = byteCharacters.slice(offset, offset + 512);
-      const byteNumbers = Array.from(slice, (char) => char.charCodeAt(0));
-      const byteArray = new Uint8Array(byteNumbers);
-      byteArrays.push(byteArray);
-    }
-    return URL.createObjectURL(new Blob(byteArrays, { type: "image/jpeg" }));
-  };
-
-  const isHomePage = location.pathname === '/';
-
-  const handleImageClick = (caption) => {
-    const formattedCaption = caption.toLowerCase().replace(/\s+/g, '-');
-    if (popupType === 'solutions') navigate(`/solutions/${formattedCaption}`);
-    else if (caption === 'Who we are') navigate('/about');
-    else if (caption === 'How we work') navigate('/how-we-work');
-  };
-
-  const handleMobilePopupClick = (section, caption) => {
-    const formattedCaption = caption.toLowerCase().replace(/\s+/g, '-');
-    setMobilePopupType(null);
-    if (section === 'solutions') navigate(`/solutions/${formattedCaption}`);
-    else if (section === 'about') {
-      if (caption === 'Who we are') navigate('/about');
-      else if (caption === 'How we work') navigate('/how-we-work');
-    }
-  };
-
-  const handleContactClick = () => {
-    setContactClicked(true);
-    setTimeout(() => navigate('/contact'), 500);
-  };
-
-  const handleUserIconClick = () => {
-    console.log("🎯 User Icon Clicked - Role:", userRole);
-    
-    if (userRole === 'admin') {
-      console.log("➡️ Redirecting to Admin Dashboard");
-      navigate('/admin/dashboard');
-    } else {
-      console.log("➡️ Redirecting to User Dashboard");
-      navigate('/dashboard');
-    }
-  };
-
-  const handleLogout = async () => {
-    const currentToken = localStorage.getItem("auth_token");
-    if (!currentToken) return;
-
-    try {
-      const endpoint = userRole === 'admin' ? '/admin/logout' : '/users/logout';
-      
-      await fetch(`${BASE_URL_AND_PORT}${endpoint}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${currentToken}`,
-          "API-Key": API_KEY,
-        },
-      }).catch(err => console.log("Logout API error:", err));
-
-      localStorage.removeItem("auth_token");
-      localStorage.removeItem("login_timestamp");
-      localStorage.removeItem("user_role");
-      setIsLoggedIn(false);
-      setUserData(null);
-      setUserRole(null);
-      setShowLogoutConfirm(false);
-      navigate('/');
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
+  const isDark = theme === 'dark';
 
   return (
     <nav
-      className={`top-0 left-0 w-full transition-all duration-300 z-10 ${isScrolled || !isHomePage || popupType ? 'bg-white text-black' : 'bg-transparent text-white'} ${isScrolled ? 'fixed' : 'absolute'}`}
-      onMouseLeave={() => setPopupType(null)}
+      className={`fixed top-0 w-full z-40 transition-all duration-300 ${
+        scrolled 
+          ? isDark
+            ? 'bg-[#0b0f19]/90 backdrop-blur-xl shadow-xl shadow-indigo-950/20 border-b border-indigo-500/20 py-3' 
+            : 'bg-white/90 backdrop-blur-xl shadow-md border-b border-gray-200/80 py-3'
+          : 'bg-transparent py-5'
+      }`}
     >
-      <div className="flex flex-wrap md:flex-nowrap items-center justify-between px-4 md:px-10 py-4 md:py-6 w-full">
-        <Link to="/">
-          <img src={logos} alt="Logo" className="w-20 sm:w-24 md:w-28 lg:w-32" />
-        </Link>
-
-        <div className="md:hidden flex items-center">
-          <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-black focus:outline-none">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-
-        <div className="hidden md:flex w-full md:w-auto justify-start md:justify-start">
-          <div className="flex flex-wrap gap-4 sm:gap-6 md:gap-10 font-semibold text-sm sm:text-base md:text-xl">
-            <div onMouseEnter={() => setPopupType('solutions')}>
-              <Link to="/solution" className={`hover:underline ${popupType === 'solutions' ? 'underline' : ''}`}>Solutions</Link>
-            </div>
-            <div onMouseEnter={() => setPopupType('about')}>
-              <Link to="/about" className={`hover:underline ${popupType === 'about' ? 'underline' : ''}`}>About Us</Link>
-            </div>
-            <div onMouseEnter={() => setPopupType(null)}>
-              <Link to="/news" className="hover:underline">News</Link>
-            </div>
-             <div onMouseEnter={() => setPopupType(null)}>
-              <Link to="/blog" className="hover:underline">Blog</Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex gap-4 items-center mt-4 md:mt-0">
-          {isLoggedIn ? (
-            <>
-              <div onClick={handleUserIconClick} className="cursor-pointer hover:opacity-80 transition-opacity">
-                {userData?.profile_picture ? (
-                  <img 
-                    src={userData.profile_picture} 
-                    alt="Profile" 
-                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-300"
-                  />
-                ) : (
-                  <FaUserCircle size={30} color={isScrolled || !isHomePage || popupType ? "black" : "white"} />
-                )}
-              </div>
-              
-              {/* <button
-                onClick={() => setShowLogoutConfirm(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-all duration-300 text-sm font-medium"
-              >
-                <FaSignOutAlt size={14} />
-                <span className="hidden sm:inline">Logout</span>
-              </button> */}
-            </>
-          ) : (
-            <Link to="/login" className="hover:underline font-medium text-base">Login</Link>
-          )}
+      <div className="container mx-auto px-4 md:px-6 lg:px-8">
+        <div className="flex justify-between items-center">
           
-          <button
-            onClick={handleContactClick}
-            onMouseEnter={() => setContactHovered(true)}
-            onMouseLeave={() => setContactHovered(false)}
-            className="flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-black text-white rounded-full hover:bg-gray-800 transition"
+          {/* Logo */}
+          <a 
+            href="#home" 
+            className="group flex items-center gap-2.5 transition-transform duration-300 hover:scale-105"
           >
-            Contact
-            {(contactHovered || contactClicked) && (
-              <div className="ml-2 w-8 h-8 sm:w-10 sm:h-10 bg-yellow-500 rounded-full flex items-center justify-center transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 sm:w-6 h-4 sm:h-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 p-[1.5px] shadow-lg shadow-indigo-500/25">
+              <div className={`w-full h-full rounded-[10px] ${isDark ? 'bg-[#0b0f19]' : 'bg-white'} flex items-center justify-center font-mono font-bold text-sm bg-clip-text text-transparent bg-gradient-to-tr from-indigo-400 to-pink-500`}>
+                &lt;PD /&gt;
               </div>
-            )}
-          </button>
+            </div>
+            <div className="flex flex-col">
+              <span className={`text-xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Puja<span className="bg-gradient-to-r from-indigo-400 to-pink-500 bg-clip-text text-transparent">Das</span>
+              </span>
+              <span className="text-[10px] uppercase tracking-widest text-indigo-400 font-semibold -mt-1">
+                Software Dev
+              </span>
+            </div>
+          </a>
+
+          {/* Desktop Menu */}
+          <div className="hidden lg:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                className={`relative px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  isDark 
+                    ? 'text-gray-300 hover:text-white hover:bg-indigo-500/10' 
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-indigo-50'
+                } group`}
+              >
+                {link.name}
+                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-gradient-to-r from-indigo-400 to-pink-500 transition-all duration-300 group-hover:w-3/5 rounded-full"></span>
+              </a>
+            ))}
+
+            {/* Resume Button in Navbar */}
+            <button
+              onClick={onOpenResume}
+              className="ml-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow-md shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-105 transition-all duration-200"
+            >
+              <FaFilePdf className="text-xs" />
+              Resume
+            </button>
+            
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              aria-label="Toggle Theme"
+              className={`ml-2 p-2.5 rounded-xl transition-all duration-300 hover:scale-110 ${
+                isDark 
+                  ? 'bg-gray-800/80 text-yellow-400 hover:bg-gray-700 border border-gray-700 shadow-sm' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+              }`}
+            >
+              {isDark ? (
+                <FaSun size={16} />
+              ) : (
+                <FaMoon size={16} />
+              )}
+            </button>
+          </div>
+
+          {/* Mobile Controls */}
+          <div className="lg:hidden flex items-center gap-2">
+            <button
+              onClick={onOpenResume}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-sm flex items-center gap-1"
+            >
+              <FaFilePdf /> CV
+            </button>
+
+            <button
+              onClick={toggleTheme}
+              aria-label="Toggle Theme"
+              className={`p-2 rounded-lg transition-all ${
+                isDark 
+                  ? 'bg-gray-800 text-yellow-400 border border-gray-700' 
+                  : 'bg-gray-100 text-gray-800 border border-gray-200'
+              }`}
+            >
+              {isDark ? <FaSun size={15} /> : <FaMoon size={15} />}
+            </button>
+
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className={`p-2 rounded-lg transition-all ${
+                isDark 
+                  ? 'text-gray-200 hover:bg-gray-800' 
+                  : 'text-gray-800 hover:bg-gray-100'
+              }`}
+              aria-label="Toggle Navigation Menu"
+            >
+              {isOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-sm mx-4">
-            <h3 className="text-xl font-bold text-gray-800 mb-3">Confirm Logout</h3>
-            <p className="text-gray-600 mb-6">Are you sure you want to logout?</p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Mobile Dropdown Menu */}
+      <div className={`lg:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+        isOpen ? 'max-h-[500px] opacity-100 border-b' : 'max-h-0 opacity-0'
+      } ${
+        isDark 
+          ? 'bg-[#0b0f19]/95 backdrop-blur-2xl border-indigo-500/20' 
+          : 'bg-white/95 backdrop-blur-2xl border-gray-200'
+      }`}>
+        <div className="container mx-auto px-4 py-5 space-y-2">
+          {navLinks.map((link) => (
+            <a
+              key={link.name}
+              href={link.href}
+              onClick={handleLinkClick}
+              className={`block px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                isDark 
+                  ? 'text-gray-300 hover:text-white hover:bg-indigo-500/15' 
+                  : 'text-gray-700 hover:text-indigo-600 hover:bg-indigo-50'
+              }`}
+            >
+              {link.name}
+            </a>
+          ))}
 
-      {/* Popup Section - Keep your existing code */}
-      {popupType && (
-        <div className="w-full px-4 md:px-10 pb-6 hidden md:block">
-          {/* Your existing popup content */}
-          <div className="border-t border-gray-300 py-4">
-            <h2 className="text-lg font-semibold">
-              {popupType === 'solutions' ? 'Solutions' : 'About Us'}
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
-            {(popupType === 'solutions' ? [slide1, slide2, slide3, slide4] : [about1, about2]).map((img, i) => (
-              <div key={i} className="relative group cursor-pointer" onClick={() => handleImageClick(popupType === 'solutions' ? solutionCaptions[i] : aboutCaptions[i])}>
-                <img src={img} alt="popup" className="w-full h-[220px] object-cover rounded-lg shadow-md transition-transform duration-300 transform group-hover:scale-105" />
-                <span className="block mt-2 text-sm font-medium text-center">
-                  {popupType === 'solutions' ? solutionCaptions[i] : aboutCaptions[i]}
-                </span>
-              </div>
-            ))}
+          <div className="pt-3 border-t border-gray-700/40 flex items-center justify-between">
+            <button
+              onClick={() => {
+                handleLinkClick();
+                onOpenResume();
+              }}
+              className="w-full py-2.5 rounded-xl text-center font-bold text-sm bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg flex items-center justify-center gap-2"
+            >
+              <FaFilePdf /> View & Download Resume
+            </button>
           </div>
         </div>
-      )}
-
-      {/* Mobile Menu */}
-      <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'} bg-white text-black px-4 py-6 absolute top-0 left-0 w-full min-h-[20vh] z-20`}>
-        <div className="flex justify-end">
-          <button onClick={() => setIsMenuOpen(false)} className="text-black text-3xl font-bold">&times;</button>
-        </div>
-        <div className="flex flex-wrap items-center gap-6 text-base font-semibold mt-6 justify-center">
-          <div onClick={() => setMobilePopupType('solutions')} className="cursor-pointer hover:underline">Solutions</div>
-          <div onClick={() => setMobilePopupType('about')} className="cursor-pointer hover:underline">About Us</div>
-          <Link to="/news" className="hover:underline">News</Link>
-          
-          {isLoggedIn ? (
-            <>
-              <div onClick={() => {
-                setIsMenuOpen(false);
-                handleUserIconClick();
-              }} className="cursor-pointer hover:underline">
-                {userRole === 'admin' ? 'Admin Dashboard' : 'Dashboard'}
-              </div>
-              <button onClick={() => {
-                setIsMenuOpen(false);
-                setShowLogoutConfirm(true);
-              }} className="hover:underline text-red-600">
-                Logout
-              </button>
-            </>
-          ) : (
-            <Link to="/login" onClick={() => setIsMenuOpen(false)} className="hover:underline text-base">Login</Link>
-          )}
-          
-          <button onClick={() => {
-            setIsMenuOpen(false);
-            handleContactClick();
-          }} className="flex items-center px-3 py-2 bg-black text-white rounded-full text-sm">
-            Contact
-          </button>
-        </div>
-
-        {mobilePopupType && (
-          <div className="w-full px-4 py-4 mt-4 bg-white">
-            <h3 className="text-lg font-semibold text-center">{mobilePopupType === 'solutions' ? 'Solutions' : 'About Us'}</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {(mobilePopupType === 'solutions' ? solutionCaptions : aboutCaptions).map((caption, index) => (
-                <div key={index} className="flex flex-col items-center cursor-pointer" onClick={() => handleMobilePopupClick(mobilePopupType, caption)}>
-                  <span className="text-center text-sm">{caption}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </nav>
   );
-}
+};
 
 export default Navbar;
