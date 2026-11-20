@@ -10,7 +10,8 @@ import {
   FaFilePdf,
   FaEye,
   FaRocket,
-  FaDatabase
+  FaDatabase,
+  FaServer
 } from 'react-icons/fa';
 import { SiNextdotjs, SiTailwindcss, SiTypescript, SiExpress, SiMongodb } from 'react-icons/si';
 import { TypeAnimation } from 'react-type-animation';
